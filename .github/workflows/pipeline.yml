@@ -3,10 +3,12 @@ name: Delivery API Pipeline
 on:
   push: 
     branches:
-      - main, developer
+      - main
+      - developer
   pull_request:
     branches:
-      - main, developer
+      - main
+      - developer
 
 jobs:
   sast:
