@@ -1,31 +1,72 @@
-name: Node.js CI Pipeline
+name: Delivery API Pipeline
 
 on:
-  push:
-    branches: [ "main", "developer" ]
+  push: 
+    branches:
+      - main
   pull_request:
-    branches: [ "main", "developer" ]
+    branches:
+      - main
 
 jobs:
-  build-and-test:
+  sast:
+    name: 0. SAST (Segurança)
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [24.x] # Ajuste conforme a versão que você utiliza localmente
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout do código
+        uses: actions/checkout@v5
 
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+      - name: Executar Análise SAST (njsscan)
+        uses: ajinabraham/njsscan-action@master
+        with:
+          args: '.'
 
-    - name: Install dependencies
-      run: npm install
+  build:
+    name: 1. Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v5
 
-    - name: Run tests
-      run: npm test
+      - name: Configurar o Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Compilar o código
+        run: npm run build
+
+  lint-and-quality:
+    name: 2. Lint & Quality
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          
+      - run: npm install
+      
+      - name: Executar Linter (ESLint)
+        run: npm run lint
+
+  test:
+    name: 3. Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          
+      - run: npm install
+      - name: Executar Testes Unitários
+        run: npm test
